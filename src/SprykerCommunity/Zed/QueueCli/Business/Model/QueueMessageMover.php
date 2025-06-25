@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SprykerCommunity\Zed\QueueCli\Business\Model;
 
+use Generated\Shared\Transfer\RabbitMqConsumerOptionTransfer;
+use Generated\Shared\Transfer\RabbitMqOptionTransfer;
 use Spryker\Client\RabbitMq\RabbitMqClientInterface;
 
 class QueueMessageMover implements QueueMessageMoverInterface
@@ -19,10 +21,36 @@ class QueueMessageMover implements QueueMessageMoverInterface
     {
         $queueAdapter = $this->rabbitMqClient->createQueueAdapter();
 
-        $queueAdapter->createQueue($targetQueueName, ['durable' => true]);
+        $queueBindingTransfer = (new RabbitMqOptionTransfer())
+            ->setQueueName($targetQueueName)
+            ->setDurable(true)
+            ->setNoWait(false)
+            ->addRoutingKey($targetQueueName);
+
+        $rabbitMqOptionTransfer = (new RabbitMqOptionTransfer())
+            ->setQueueName($targetQueueName)
+            ->setDurable(true)
+            ->setType('direct')
+            ->setDeclarationType('exchange')
+            ->addBindingQueueItem($queueBindingTransfer);
+
+        $queueAdapter->createQueue(
+            $targetQueueName,
+            [
+                'rabbitMqConsumerOption' => $rabbitMqOptionTransfer,
+            ]
+        );
+
+        $consumerOptions = $this->createConsumerOptions($sourceQueueName);
 
         while (true) {
-            $messages = $queueAdapter->receiveMessages($sourceQueueName, $chunkSize);
+            $messages = $queueAdapter->receiveMessages(
+                $sourceQueueName,
+                $chunkSize,
+                [
+                    'rabbitmq' => $consumerOptions,
+                ]
+            );
 
             if (count($messages) === 0) {
                 break;
@@ -46,5 +74,21 @@ class QueueMessageMover implements QueueMessageMoverInterface
                 break;
             }
         }
+    }
+
+    /**
+     * @param string $queueName
+     *
+     * @return \Generated\Shared\Transfer\RabbitMqConsumerOptionTransfer
+     */
+    protected function createConsumerOptions(string $queueName): RabbitMqConsumerOptionTransfer
+    {
+        return (new RabbitMqConsumerOptionTransfer())
+            ->setQueueName($queueName)
+            ->setConsumerTag('queue-cli')
+            ->setNoAck(false)
+            ->setNoLocal(false)
+            ->setConsumerExclusive(false)
+            ->setNoWait(false);
     }
 }

@@ -6,17 +6,27 @@ namespace SprykerCommunity\Zed\QueueCli\Business\Model;
 
 use Generated\Shared\Transfer\RabbitMqConsumerOptionTransfer;
 use Generated\Shared\Transfer\RabbitMqOptionTransfer;
+use Spryker\Client\RabbitMq\Model\Helper\QueueEstablishmentHelperInterface;
 use Spryker\Client\RabbitMq\RabbitMqClientInterface;
 
 class QueueMessageMover implements QueueMessageMoverInterface
 {
     private const DEFAULT_EXCHANGE_QUEUE = 'amq.direct';
 
+    /**
+     * @var \Spryker\Client\RabbitMq\RabbitMqClientInterface
+     */
     protected RabbitMqClientInterface $rabbitMqClient;
 
-    public function __construct(RabbitMqClientInterface $rabbitMqClient)
+    /**
+     * @var \Spryker\Client\RabbitMq\Model\Helper\QueueEstablishmentHelperInterface
+     */
+    protected QueueEstablishmentHelperInterface $queueEstablishmentHelper;
+
+    public function __construct(RabbitMqClientInterface $rabbitMqClient, QueueEstablishmentHelperInterface $queueEstablishmentHelper)
     {
         $this->rabbitMqClient = $rabbitMqClient;
+        $this->queueEstablishmentHelper = $queueEstablishmentHelper;
     }
 
     public function moveMessages(string $sourceQueueName, string $targetQueueName, int $chunkSize): void
@@ -42,6 +52,8 @@ class QueueMessageMover implements QueueMessageMoverInterface
                 'rabbitMqConsumerOption' => $rabbitMqOptionTransfer,
             ]
         );
+
+        $this->queueEstablishmentHelper->createExchange($this->rabbitMqClient->getConnection()->getChannel(), $rabbitMqOptionTransfer);
 
         $consumerOptions = $this->createConsumerOptions($sourceQueueName);
 

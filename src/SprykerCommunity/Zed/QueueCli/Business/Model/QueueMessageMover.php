@@ -4,64 +4,61 @@ declare(strict_types=1);
 
 namespace SprykerCommunity\Zed\QueueCli\Business\Model;
 
+use Generated\Shared\Transfer\QueueReceiveMessageTransfer;
 use Generated\Shared\Transfer\RabbitMqConsumerOptionTransfer;
-use Generated\Shared\Transfer\RabbitMqOptionTransfer;
-use Spryker\Client\RabbitMq\Model\Connection\Connection;
 use Spryker\Client\RabbitMq\Model\Helper\QueueEstablishmentHelperInterface;
 use Spryker\Client\RabbitMq\RabbitMqClientInterface;
+use SprykerCommunity\Zed\QueueCli\Business\Helper\InternalQueueBindingHelper;
 
 class QueueMessageMover implements QueueMessageMoverInterface
 {
+    private const CONSUMER_TAG = 'queue-cli';
 
+    /**
+     * @param QueueMessageFilterInterface[] $queueMessageFilters
+     */
     public function __construct(
         protected RabbitMqClientInterface $rabbitMqClient,
-        protected QueueEstablishmentHelperInterface $queueEstablishmentHelper
+        protected QueueEstablishmentHelperInterface $queueEstablishmentHelper,
+        protected InternalQueueBindingHelper $internalQueueBindingHelper,
+        protected QueueSetupServiceInterface $queueSetupService,
+        protected array $queueMessageFilters
     ) {
     }
 
-    public function moveMessages(string $sourceQueueName, string $targetQueueName, int $chunkSize): void
+    public function moveMessages(string $sourceQueueName, string $targetQueueName, int $chunkSize, string $filter, ?int $limit = null): int
     {
         $queueAdapter = $this->rabbitMqClient->createQueueAdapter();
 
-        $queueBindingTransfer = $this->createQueueOptionTransfer($targetQueueName);
+        $this->queueSetupService->setupTargetQueue($targetQueueName);
 
-        $rabbitMqOptionTransfer = (new RabbitMqOptionTransfer())
-            ->setQueueName($targetQueueName)
-            ->setDurable(true)
-            ->setType('direct')
-            ->setDeclarationType(Connection::RABBIT_MQ_EXCHANGE)
-            ->addBindingQueueItem($queueBindingTransfer);
-
-        $queueAdapter->createQueue(
+        return $this->processMessages(
+            $queueAdapter,
+            $sourceQueueName,
             $targetQueueName,
-            [
-                'rabbitMqConsumerOption' => $rabbitMqOptionTransfer,
-            ]
+            $chunkSize,
+            $filter,
+            $limit
         );
+    }
 
-        $this->queueEstablishmentHelper->createExchange(
-            $this->rabbitMqClient->getConnection()->getChannel(),
-            $rabbitMqOptionTransfer
-        );
-
-        $connection = $this->rabbitMqClient->getConnection();
-        $reflectionMethod = new \ReflectionMethod(Connection::class, 'createQueueAndBind');
-        $reflectionMethod->setAccessible(true);
-        $reflectionMethod->invoke(
-            $connection,
-            $queueBindingTransfer,
-            $targetQueueName
-        );
-
+    protected function processMessages(
+        $queueAdapter,
+        string $sourceQueueName,
+        string $targetQueueName,
+        int $chunkSize,
+        string $filterString,
+        ?int $limit
+    ): int {
         $consumerOptions = $this->createConsumerOptions($sourceQueueName);
 
-        while (true) {
+        $processedCount = 0;
+
+        while ($limit === null || $processedCount < $limit) {
             $messages = $queueAdapter->receiveMessages(
                 $sourceQueueName,
                 $chunkSize,
-                [
-                    'rabbitmq' => $consumerOptions,
-                ]
+                ['rabbitmq' => $consumerOptions]
             );
 
             if (count($messages) === 0) {
@@ -69,16 +66,26 @@ class QueueMessageMover implements QueueMessageMoverInterface
             }
 
             $messagesToSend = [];
+            $messagesToAcknowledge = [];
+
             foreach ($messages as $receivedMessage) {
+                if (!$this->applyFilter($receivedMessage, $filterString)) {
+                    continue;
+                }
+
                 $queueSendMessageTransfer = $receivedMessage->getQueueMessage();
                 if ($queueSendMessageTransfer) {
                     $messagesToSend[] = $queueSendMessageTransfer;
+                    $messagesToAcknowledge[] = $receivedMessage;
+                    $processedCount++;
                 }
             }
 
-            $queueAdapter->sendMessages($targetQueueName, $messagesToSend);
+            if (!empty($messagesToSend)) {
+                $queueAdapter->sendMessages($targetQueueName, $messagesToSend);
+            }
 
-            foreach ($messages as $receivedMessage) {
+            foreach ($messagesToAcknowledge as $receivedMessage) {
                 $queueAdapter->acknowledge($receivedMessage);
             }
 
@@ -86,39 +93,29 @@ class QueueMessageMover implements QueueMessageMoverInterface
                 break;
             }
         }
+
+        return $processedCount;
     }
 
-    /**
-     * @param string $queueName
-     *
-     * @return \Generated\Shared\Transfer\RabbitMqConsumerOptionTransfer
-     */
     protected function createConsumerOptions(string $queueName): RabbitMqConsumerOptionTransfer
     {
         return (new RabbitMqConsumerOptionTransfer())
             ->setQueueName($queueName)
-            ->setConsumerTag('queue-cli')
+            ->setConsumerTag(self::CONSUMER_TAG)
             ->setNoAck(false)
             ->setNoLocal(false)
             ->setConsumerExclusive(false)
             ->setNoWait(false);
     }
 
-    /**
-     * @param string $queueName
-     * @param string $routingKey
-     *
-     * @return \Generated\Shared\Transfer\RabbitMqOptionTransfer
-     */
-    protected function createQueueOptionTransfer($queueName, $routingKey = '')
+    private function applyFilter(QueueReceiveMessageTransfer $receivedMessage, string $filterString): bool
     {
-        $queueOptionTransfer = new RabbitMqOptionTransfer();
-        $queueOptionTransfer
-            ->setQueueName($queueName)
-            ->setDurable(true)
-            ->setNoWait(false)
-            ->addRoutingKey($routingKey);
+        foreach ($this->queueMessageFilters as $filter) {
+            if ($filter->matches($receivedMessage, $filterString)) {
+                return true;
+            }
+        }
 
-        return $queueOptionTransfer;
+        return false;
     }
 }

@@ -11,8 +11,18 @@ use Spryker\Zed\Kernel\Business\AbstractFacade;
  */
 class QueueCliFacade extends AbstractFacade implements QueueCliFacadeInterface
 {
-    public function moveMessages(string $sourceQueueName, string $targetQueueName, int $chunkSize): void
-    {
-        $this->getFactory()->createQueueMessageMover()->moveMessages($sourceQueueName, $targetQueueName, $chunkSize);
+    public function moveMessages(
+        string $sourceQueueName,
+        string $targetQueueName,
+        int $chunkSize,
+        string $filter,
+        ?int $limit
+    ): int {
+        return $this->getFactory()->createQueueMessageMover()->moveMessages(
+            $sourceQueueName,
+            $targetQueueName,
+            $chunkSize,
+            $filter
+        );
     }
 }

@@ -6,5 +6,5 @@ namespace SprykerCommunity\Zed\QueueCli\Business;
 
 interface QueueCliFacadeInterface
 {
-    public function moveMessages(string $sourceQueueName, string $targetQueueName, int $chunkSize): void;
+    public function moveMessages(string $sourceQueueName, string $targetQueueName, int $chunkSize, string $filter, ?int $limit): int;
 }

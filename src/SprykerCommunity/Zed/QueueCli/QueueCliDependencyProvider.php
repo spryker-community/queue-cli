@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SprykerCommunity\Zed;
+namespace SprykerCommunity\Zed\QueueCli;
 
 use Spryker\Zed\Kernel\AbstractBundleDependencyProvider;
 use Spryker\Zed\Kernel\Container;

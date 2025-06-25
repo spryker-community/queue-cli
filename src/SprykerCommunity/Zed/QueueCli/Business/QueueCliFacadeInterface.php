@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SprykerCommunity\Zed\Business;
+namespace SprykerCommunity\Zed\QueueCli\Business;
 
 interface QueueCliFacadeInterface
 {

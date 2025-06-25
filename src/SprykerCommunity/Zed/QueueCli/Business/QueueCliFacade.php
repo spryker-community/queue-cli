@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace SprykerCommunity\Zed\Business;
+namespace SprykerCommunity\Zed\QueueCli\Business;
 
 use Spryker\Zed\Kernel\Business\AbstractFacade;
 
 /**
- * @method \SprykerCommunity\Zed\Business\QueueCliBusinessFactory getFactory()
+ * @method \SprykerCommunity\Zed\QueueCli\Business\QueueCliBusinessFactory getFactory()
  */
 class QueueCliFacade extends AbstractFacade implements QueueCliFacadeInterface
 {

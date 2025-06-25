@@ -10,6 +10,8 @@ use Spryker\Client\RabbitMq\RabbitMqClientInterface;
 
 class QueueMessageMover implements QueueMessageMoverInterface
 {
+    private const DEFAULT_EXCHANGE_QUEUE = 'amq.direct';
+
     protected RabbitMqClientInterface $rabbitMqClient;
 
     public function __construct(RabbitMqClientInterface $rabbitMqClient)
@@ -22,7 +24,7 @@ class QueueMessageMover implements QueueMessageMoverInterface
         $queueAdapter = $this->rabbitMqClient->createQueueAdapter();
 
         $queueBindingTransfer = (new RabbitMqOptionTransfer())
-            ->setQueueName($targetQueueName)
+            ->setQueueName(self::DEFAULT_EXCHANGE_QUEUE)
             ->setDurable(true)
             ->setNoWait(false)
             ->addRoutingKey($targetQueueName);

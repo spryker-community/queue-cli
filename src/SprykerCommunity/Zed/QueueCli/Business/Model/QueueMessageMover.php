@@ -6,44 +6,30 @@ namespace SprykerCommunity\Zed\QueueCli\Business\Model;
 
 use Generated\Shared\Transfer\RabbitMqConsumerOptionTransfer;
 use Generated\Shared\Transfer\RabbitMqOptionTransfer;
+use Spryker\Client\RabbitMq\Model\Connection\Connection;
 use Spryker\Client\RabbitMq\Model\Helper\QueueEstablishmentHelperInterface;
 use Spryker\Client\RabbitMq\RabbitMqClientInterface;
 
 class QueueMessageMover implements QueueMessageMoverInterface
 {
-    private const DEFAULT_EXCHANGE_QUEUE = 'amq.direct';
 
-    /**
-     * @var \Spryker\Client\RabbitMq\RabbitMqClientInterface
-     */
-    protected RabbitMqClientInterface $rabbitMqClient;
-
-    /**
-     * @var \Spryker\Client\RabbitMq\Model\Helper\QueueEstablishmentHelperInterface
-     */
-    protected QueueEstablishmentHelperInterface $queueEstablishmentHelper;
-
-    public function __construct(RabbitMqClientInterface $rabbitMqClient, QueueEstablishmentHelperInterface $queueEstablishmentHelper)
-    {
-        $this->rabbitMqClient = $rabbitMqClient;
-        $this->queueEstablishmentHelper = $queueEstablishmentHelper;
+    public function __construct(
+        protected RabbitMqClientInterface $rabbitMqClient,
+        protected QueueEstablishmentHelperInterface $queueEstablishmentHelper
+    ) {
     }
 
     public function moveMessages(string $sourceQueueName, string $targetQueueName, int $chunkSize): void
     {
         $queueAdapter = $this->rabbitMqClient->createQueueAdapter();
 
-        $queueBindingTransfer = (new RabbitMqOptionTransfer())
-            ->setQueueName(self::DEFAULT_EXCHANGE_QUEUE)
-            ->setDurable(true)
-            ->setNoWait(false)
-            ->addRoutingKey($targetQueueName);
+        $queueBindingTransfer = $this->createQueueOptionTransfer($targetQueueName);
 
         $rabbitMqOptionTransfer = (new RabbitMqOptionTransfer())
             ->setQueueName($targetQueueName)
             ->setDurable(true)
             ->setType('direct')
-            ->setDeclarationType('exchange')
+            ->setDeclarationType(Connection::RABBIT_MQ_EXCHANGE)
             ->addBindingQueueItem($queueBindingTransfer);
 
         $queueAdapter->createQueue(
@@ -53,7 +39,19 @@ class QueueMessageMover implements QueueMessageMoverInterface
             ]
         );
 
-        $this->queueEstablishmentHelper->createExchange($this->rabbitMqClient->getConnection()->getChannel(), $rabbitMqOptionTransfer);
+        $this->queueEstablishmentHelper->createExchange(
+            $this->rabbitMqClient->getConnection()->getChannel(),
+            $rabbitMqOptionTransfer
+        );
+
+        $connection = $this->rabbitMqClient->getConnection();
+        $reflectionMethod = new \ReflectionMethod(Connection::class, 'createQueueAndBind');
+        $reflectionMethod->setAccessible(true);
+        $reflectionMethod->invoke(
+            $connection,
+            $queueBindingTransfer,
+            $targetQueueName
+        );
 
         $consumerOptions = $this->createConsumerOptions($sourceQueueName);
 
@@ -104,5 +102,23 @@ class QueueMessageMover implements QueueMessageMoverInterface
             ->setNoLocal(false)
             ->setConsumerExclusive(false)
             ->setNoWait(false);
+    }
+
+    /**
+     * @param string $queueName
+     * @param string $routingKey
+     *
+     * @return \Generated\Shared\Transfer\RabbitMqOptionTransfer
+     */
+    protected function createQueueOptionTransfer($queueName, $routingKey = '')
+    {
+        $queueOptionTransfer = new RabbitMqOptionTransfer();
+        $queueOptionTransfer
+            ->setQueueName($queueName)
+            ->setDurable(true)
+            ->setNoWait(false)
+            ->addRoutingKey($routingKey);
+
+        return $queueOptionTransfer;
     }
 }

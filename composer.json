@@ -1,6 +1,6 @@
 {
     "name": "spryker-community/queue-cli",
-    "description": "SprykerCommunity queue cli tool",
+    "description": "SprykerCommunity Queue cli tool",
     "type": "library",
     "license": "MIT",
     "require": {

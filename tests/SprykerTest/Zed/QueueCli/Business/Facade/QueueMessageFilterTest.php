@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace UnitTest\Zed\QueueCli\Business\Model;
+namespace tests\SprykerTest\Zed\QueueCli\Business\Facade;
 
 use Generated\Shared\Transfer\QueueReceiveMessageTransfer;
 use Generated\Shared\Transfer\QueueSendMessageTransfer;

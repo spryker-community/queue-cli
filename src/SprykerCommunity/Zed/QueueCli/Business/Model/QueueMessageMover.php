@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SprykerCommunity\Zed\QueueCli\Business\Model;
 
+use Generated\Shared\Transfer\QueueMessageMoveConfigurationTransfer;
 use Generated\Shared\Transfer\QueueReceiveMessageTransfer;
 use Generated\Shared\Transfer\RabbitMqConsumerOptionTransfer;
 use Spryker\Client\RabbitMq\Model\Helper\QueueEstablishmentHelperInterface;
@@ -26,39 +27,26 @@ class QueueMessageMover implements QueueMessageMoverInterface
     ) {
     }
 
-    public function moveMessages(string $sourceQueueName, string $targetQueueName, int $chunkSize, string $filter, bool $keep, ?int $limit = null): int
+    public function moveMessages(QueueMessageMoveConfigurationTransfer $configurationTransfer): int
     {
-        $queueAdapter = $this->rabbitMqClient->createQueueAdapter();
+        $this->queueSetupService->setupTargetQueue($configurationTransfer->getTargetQueue());
 
-        $this->queueSetupService->setupTargetQueue($targetQueueName);
-
-        return $this->processMessages(
-            $queueAdapter,
-            $sourceQueueName,
-            $targetQueueName,
-            $chunkSize,
-            $filter,
-            $keep,
-            $limit
-        );
+        return $this->processMessages($configurationTransfer);
     }
 
-    protected function processMessages(
-        $queueAdapter,
-        string $sourceQueueName,
-        string $targetQueueName,
-        int $chunkSize,
-        string $filterString,
-        bool $keep,
-        ?int $limit
-    ): int {
-        $consumerOptions = $this->createConsumerOptions($sourceQueueName);
+    protected function processMessages(QueueMessageMoveConfigurationTransfer $configurationTransfer): int
+    {
+        $queueAdapter = $this->rabbitMqClient->createQueueAdapter();
+        $consumerOptions = $this->createConsumerOptions($configurationTransfer->getSourceQueue());
+
+        $limit = $configurationTransfer->getLimit();
+        $chunkSize = $configurationTransfer->getChunkSize();
 
         $processedCount = 0;
 
         while ($limit === null || $processedCount < $limit) {
             $messages = $queueAdapter->receiveMessages(
-                $sourceQueueName,
+                $configurationTransfer->getSourceQueue(),
                 $chunkSize,
                 ['rabbitmq' => $consumerOptions]
             );
@@ -71,7 +59,7 @@ class QueueMessageMover implements QueueMessageMoverInterface
             $messagesToAcknowledge = [];
 
             foreach ($messages as $receivedMessage) {
-                if (!$this->applyFilter($receivedMessage, $filterString)) {
+                if (!$this->applyFilter($receivedMessage, $configurationTransfer->getFilter())) {
                     continue;
                 }
 
@@ -84,11 +72,11 @@ class QueueMessageMover implements QueueMessageMoverInterface
             }
 
             if (!empty($messagesToSend)) {
-                $queueAdapter->sendMessages($targetQueueName, $messagesToSend);
+                $queueAdapter->sendMessages($configurationTransfer->getTargetQueue(), $messagesToSend);
             }
 
             foreach ($messagesToAcknowledge as $receivedMessage) {
-                if (!$keep) {
+                if (!$configurationTransfer->getKeep()) {
                     $queueAdapter->acknowledge($receivedMessage);
                 }
             }

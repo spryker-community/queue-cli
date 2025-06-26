@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SprykerCommunity\Zed\QueueCli\Communication\Console;
 
+use Generated\Shared\Transfer\QueueMessageMoveConfigurationTransfer;
 use Spryker\Zed\Kernel\Communication\Console\Console;
 use SprykerCommunity\Zed\QueueCli\Business\QueueCliFacadeInterface;
 use Symfony\Component\Console\Input\InputArgument;
@@ -61,32 +62,37 @@ class QueueCliConsole extends Console
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $sourceQueueName = $input->getArgument(self::ARGUMENT_SOURCE_QUEUE);
-        $targetQueueName = $input->getArgument(self::ARGUMENT_TARGET_QUEUE);
-        $chunkSize = (int)$input->getOption(self::OPTION_CHUNK_SIZE);
-        $filter = (string)$input->getOption(self::OPTION_FILTER);
-        $limit = (int)$input->getOption(self::OPTION_LIMIT) ?? null;
-        $keep = (bool)$input->getOption(self::OPTION_KEEP_MESSAGE);
+        $configurationTransfer = $this->createConfigurationTransfer($input);
 
-        // TODO: create config TO
-        $processedCount = $this->getFacade()->moveMessages(
-            $sourceQueueName,
-            $targetQueueName,
-            $chunkSize,
-            $filter,
-            $keep,
-            $limit
-        );
+        $processedCount = $this->getFacade()->moveMessages($configurationTransfer);
 
         $output->writeln(
             sprintf(
                 'Successfully moved %s messages from "%s" to "%s".',
                 $processedCount,
-                $sourceQueueName,
-                $targetQueueName
+                $configurationTransfer->getSourceQueue(),
+                $configurationTransfer->getTargetQueue()
             )
         );
 
         return static::CODE_SUCCESS;
+    }
+
+    private function createConfigurationTransfer(InputInterface $input): QueueMessageMoveConfigurationTransfer
+    {
+        $sourceQueueName = $input->getArgument(self::ARGUMENT_SOURCE_QUEUE);
+        $targetQueueName = $input->getArgument(self::ARGUMENT_TARGET_QUEUE);
+        $chunkSize = (int)$input->getOption(self::OPTION_CHUNK_SIZE);
+        $filter = (string)$input->getOption(self::OPTION_FILTER);
+        $limit = $input->getOption(self::OPTION_LIMIT) ?? null;
+        $keep = (bool)$input->getOption(self::OPTION_KEEP_MESSAGE);
+
+        return (new QueueMessageMoveConfigurationTransfer())
+            ->setSourceQueue($sourceQueueName)
+            ->setTargetQueue($targetQueueName)
+            ->setChunkSize($chunkSize)
+            ->setFilter($filter)
+            ->setKeep($keep)
+            ->setLimit($limit);
     }
 }

@@ -13,6 +13,8 @@ use SprykerCommunity\Zed\QueueCli\Business\Model\QueueMessageFilter;
 use SprykerCommunity\Zed\QueueCli\Business\Model\QueueMessageFilterInterface;
 use SprykerCommunity\Zed\QueueCli\Business\Model\QueueMessageMover;
 use SprykerCommunity\Zed\QueueCli\Business\Model\QueueMessageMoverInterface;
+use SprykerCommunity\Zed\QueueCli\Business\Model\QueueMessageViewer;
+use SprykerCommunity\Zed\QueueCli\Business\Model\QueueMessageViewerInterface;
 use SprykerCommunity\Zed\QueueCli\Business\Model\QueueSetupService;
 use SprykerCommunity\Zed\QueueCli\QueueCliDependencyProvider;
 
@@ -64,5 +66,13 @@ class QueueCliBusinessFactory extends AbstractBusinessFactory
         return [
             new QueueMessageFilter(),
         ];
+    }
+
+    public function createQueueMessageViewer(): QueueMessageViewerInterface
+    {
+        return new QueueMessageViewer(
+            $this->getRabbitMqClient(),
+            $this->getQueueMessageFilters()
+        );
     }
 }

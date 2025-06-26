@@ -16,4 +16,10 @@ class QueueCliFacade extends AbstractFacade implements QueueCliFacadeInterface
     {
         return $this->getFactory()->createQueueMessageMover()->moveMessages($configurationTransfer);
     }
+
+    public function listMessages(QueueMessageMoveConfigurationTransfer $configuration)
+    {
+        return $this->getFactory()->createQueueMessageViewer()->listMessages($configuration);
+    }
+
 }

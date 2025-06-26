@@ -15,7 +15,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 /**
  * @method QueueCliFacadeInterface getFacade()
  */
-class QueueCliConsole extends Console
+class QueueMessagesMoveConsole extends Console
 {
     public const COMMAND_NAME = 'queue:messages:move';
     private const DESCRIPTION = 'Move messages from one queue to another.';

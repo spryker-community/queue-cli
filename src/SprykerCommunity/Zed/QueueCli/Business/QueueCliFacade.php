@@ -16,13 +16,16 @@ class QueueCliFacade extends AbstractFacade implements QueueCliFacadeInterface
         string $targetQueueName,
         int $chunkSize,
         string $filter,
+        bool $keep,
         ?int $limit
     ): int {
         return $this->getFactory()->createQueueMessageMover()->moveMessages(
             $sourceQueueName,
             $targetQueueName,
             $chunkSize,
-            $filter
+            $filter,
+            $keep,
+            $limit
         );
     }
 }

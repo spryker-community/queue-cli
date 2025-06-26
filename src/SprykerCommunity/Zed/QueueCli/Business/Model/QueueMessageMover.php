@@ -26,7 +26,7 @@ class QueueMessageMover implements QueueMessageMoverInterface
     ) {
     }
 
-    public function moveMessages(string $sourceQueueName, string $targetQueueName, int $chunkSize, string $filter, ?int $limit = null): int
+    public function moveMessages(string $sourceQueueName, string $targetQueueName, int $chunkSize, string $filter, bool $keep, ?int $limit = null): int
     {
         $queueAdapter = $this->rabbitMqClient->createQueueAdapter();
 
@@ -38,6 +38,7 @@ class QueueMessageMover implements QueueMessageMoverInterface
             $targetQueueName,
             $chunkSize,
             $filter,
+            $keep,
             $limit
         );
     }
@@ -48,6 +49,7 @@ class QueueMessageMover implements QueueMessageMoverInterface
         string $targetQueueName,
         int $chunkSize,
         string $filterString,
+        bool $keep,
         ?int $limit
     ): int {
         $consumerOptions = $this->createConsumerOptions($sourceQueueName);
@@ -86,7 +88,9 @@ class QueueMessageMover implements QueueMessageMoverInterface
             }
 
             foreach ($messagesToAcknowledge as $receivedMessage) {
-                $queueAdapter->acknowledge($receivedMessage);
+                if (!$keep) {
+                    $queueAdapter->acknowledge($receivedMessage);
+                }
             }
 
             if ($chunkSize > 0 && count($messages) < $chunkSize) {

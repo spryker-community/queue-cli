@@ -24,6 +24,7 @@ class QueueCliConsole extends Console
     private const OPTION_CHUNK_SIZE = 'chunk-size';
     private const OPTION_FILTER = 'filter';
     private const OPTION_LIMIT = 'limit';
+    private const OPTION_KEEP_MESSAGE = 'keep';
 
     protected function configure(): void
     {
@@ -48,7 +49,13 @@ class QueueCliConsole extends Console
                 self::OPTION_LIMIT,
                 'l',
                 InputOption::VALUE_OPTIONAL,
-                'Limit of many messages will be processed max.'
+                'Limit of how many messages will be processed max.'
+            )
+            ->addOption(
+                self::OPTION_KEEP_MESSAGE,
+                'k',
+                InputOption::VALUE_NONE,
+                'If set to 1, messages will be kept in source queue.'
             );
     }
 
@@ -59,12 +66,15 @@ class QueueCliConsole extends Console
         $chunkSize = (int)$input->getOption(self::OPTION_CHUNK_SIZE);
         $filter = (string)$input->getOption(self::OPTION_FILTER);
         $limit = (int)$input->getOption(self::OPTION_LIMIT) ?? null;
+        $keep = (bool)$input->getOption(self::OPTION_KEEP_MESSAGE);
 
+        // TODO: create config TO
         $processedCount = $this->getFacade()->moveMessages(
             $sourceQueueName,
             $targetQueueName,
             $chunkSize,
             $filter,
+            $keep,
             $limit
         );
 

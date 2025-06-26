@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SprykerCommunity\Zed\QueueCli\Communication\Console;
 
-use Generated\Shared\Transfer\QueueMessageMoveConfigurationTransfer;
+use Generated\Shared\Transfer\QueueMessageCliConfigurationTransfer;
 use Spryker\Zed\Kernel\Communication\Console\Console;
 use SprykerCommunity\Zed\QueueCli\Business\QueueCliFacadeInterface;
 use Symfony\Component\Console\Input\InputArgument;
@@ -78,7 +78,7 @@ class QueueMessagesMoveConsole extends Console
         return static::CODE_SUCCESS;
     }
 
-    private function createConfigurationTransfer(InputInterface $input): QueueMessageMoveConfigurationTransfer
+    private function createConfigurationTransfer(InputInterface $input): QueueMessageCliConfigurationTransfer
     {
         $sourceQueueName = $input->getArgument(self::ARGUMENT_SOURCE_QUEUE);
         $targetQueueName = $input->getArgument(self::ARGUMENT_TARGET_QUEUE);
@@ -87,7 +87,7 @@ class QueueMessagesMoveConsole extends Console
         $limit = $input->getOption(self::OPTION_LIMIT) ?? null;
         $keep = (bool)$input->getOption(self::OPTION_KEEP_MESSAGE);
 
-        return (new QueueMessageMoveConfigurationTransfer())
+        return (new QueueMessageCliConfigurationTransfer())
             ->setSourceQueue($sourceQueueName)
             ->setTargetQueue($targetQueueName)
             ->setChunkSize($chunkSize)

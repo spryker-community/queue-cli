@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SprykerCommunity\Zed\QueueCli\Business;
 
-use Generated\Shared\Transfer\QueueMessageMoveConfigurationTransfer;
+use Generated\Shared\Transfer\QueueMessageCliConfigurationTransfer;
 use Spryker\Zed\Kernel\Business\AbstractFacade;
 
 /**
@@ -12,12 +12,12 @@ use Spryker\Zed\Kernel\Business\AbstractFacade;
  */
 class QueueCliFacade extends AbstractFacade implements QueueCliFacadeInterface
 {
-    public function moveMessages(QueueMessageMoveConfigurationTransfer $configurationTransfer): int
+    public function moveMessages(QueueMessageCliConfigurationTransfer $configurationTransfer): int
     {
         return $this->getFactory()->createQueueMessageMover()->moveMessages($configurationTransfer);
     }
 
-    public function listMessages(QueueMessageMoveConfigurationTransfer $configuration)
+    public function listMessages(QueueMessageCliConfigurationTransfer $configuration)
     {
         return $this->getFactory()->createQueueMessageViewer()->listMessages($configuration);
     }

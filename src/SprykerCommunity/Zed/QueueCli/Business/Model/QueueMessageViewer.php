@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SprykerCommunity\Zed\QueueCli\Business\Model;
 
-use Generated\Shared\Transfer\QueueMessageMoveConfigurationTransfer;
+use Generated\Shared\Transfer\QueueMessageCliConfigurationTransfer;
 use Generated\Shared\Transfer\QueueReceiveMessageTransfer;
 use Generated\Shared\Transfer\QueueSendMessageTransfer;
 use Generated\Shared\Transfer\RabbitMqConsumerOptionTransfer;
@@ -26,7 +26,7 @@ final class QueueMessageViewer implements QueueMessageViewerInterface
     /**
      * @return QueueSendMessageTransfer[]
      */
-    public function listMessages(QueueMessageMoveConfigurationTransfer $configurationTransfer): array
+    public function listMessages(QueueMessageCliConfigurationTransfer $configurationTransfer): array
     {
         $queueAdapter = $this->rabbitMqClient->createQueueAdapter();
 

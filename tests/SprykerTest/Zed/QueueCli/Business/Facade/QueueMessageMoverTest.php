@@ -3,7 +3,7 @@
 namespace SprykerTest\Zed\QueueCli\Business\Model;
 
 use Codeception\Test\Unit;
-use Generated\Shared\Transfer\QueueMessageMoveConfigurationTransfer;
+use Generated\Shared\Transfer\QueueMessageCliConfigurationTransfer;
 use Generated\Shared\Transfer\QueueReceiveMessageTransfer;
 use Generated\Shared\Transfer\QueueSendMessageTransfer;
 use PhpAmqpLib\Channel\AMQPChannel;
@@ -65,7 +65,7 @@ class QueueMessageMoverTest extends Unit
         $sendMessageTransfer = (new QueueSendMessageTransfer())->setBody('test-message');
         $receiveMessageTransfer = (new QueueReceiveMessageTransfer())->setQueueMessage($sendMessageTransfer);
 
-        $configurationTransfer = (new QueueMessageMoveConfigurationTransfer())
+        $configurationTransfer = (new QueueMessageCliConfigurationTransfer())
             ->setSourceQueue($sourceQueue)
             ->setTargetQueue($targetQueue)
             ->setChunkSize($chunkSize)
@@ -111,7 +111,7 @@ class QueueMessageMoverTest extends Unit
         $sendMessageTransfer = (new QueueSendMessageTransfer())->setBody('ignored');
         $receiveMessageTransfer = (new QueueReceiveMessageTransfer())->setQueueMessage($sendMessageTransfer);
 
-        $configurationTransfer = (new QueueMessageMoveConfigurationTransfer())
+        $configurationTransfer = (new QueueMessageCliConfigurationTransfer())
             ->setSourceQueue($sourceQueue)
             ->setTargetQueue($targetQueue)
             ->setChunkSize($chunkSize)

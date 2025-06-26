@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SprykerCommunity\Zed\QueueCli\Business\Model;
 
-use Generated\Shared\Transfer\QueueMessageMoveConfigurationTransfer;
+use Generated\Shared\Transfer\QueueMessageCliConfigurationTransfer;
 use Generated\Shared\Transfer\QueueReceiveMessageTransfer;
 use Generated\Shared\Transfer\RabbitMqConsumerOptionTransfer;
 use Spryker\Client\RabbitMq\Model\Helper\QueueEstablishmentHelperInterface;
@@ -27,14 +27,14 @@ class QueueMessageMover implements QueueMessageMoverInterface
     ) {
     }
 
-    public function moveMessages(QueueMessageMoveConfigurationTransfer $configurationTransfer): int
+    public function moveMessages(QueueMessageCliConfigurationTransfer $configurationTransfer): int
     {
         $this->queueSetupService->setupTargetQueue($configurationTransfer->getTargetQueue());
 
         return $this->processMessages($configurationTransfer);
     }
 
-    protected function processMessages(QueueMessageMoveConfigurationTransfer $configurationTransfer): int
+    protected function processMessages(QueueMessageCliConfigurationTransfer $configurationTransfer): int
     {
         $queueAdapter = $this->rabbitMqClient->createQueueAdapter();
         $consumerOptions = $this->createConsumerOptions($configurationTransfer->getSourceQueue());

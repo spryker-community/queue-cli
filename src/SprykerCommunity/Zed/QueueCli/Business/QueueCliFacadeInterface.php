@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace SprykerCommunity\Zed\QueueCli\Business;
 
-use Generated\Shared\Transfer\QueueMessageMoveConfigurationTransfer;
+use Generated\Shared\Transfer\QueueMessageCliConfigurationTransfer;
 
 interface QueueCliFacadeInterface
 {
-    public function moveMessages(QueueMessageMoveConfigurationTransfer $configurationTransfer): int;
+    public function moveMessages(QueueMessageCliConfigurationTransfer $configurationTransfer): int;
 
-    public function listMessages(QueueMessageMoveConfigurationTransfer $configuration);
+    public function listMessages(QueueMessageCliConfigurationTransfer $configuration);
 }

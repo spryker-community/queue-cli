@@ -1,6 +1,6 @@
 # Queue CLI Command
 
-This document provides instructions for using the `queue:messages:move` console command. This command allows you to move messages between different queues within your Spryker application.
+This document provides instructions for using the `queue:messages` console command. This command allows you to move messages between different queues within your Spryker application.
 
 ## Overview
 
@@ -8,7 +8,7 @@ The primary purpose of this command is to transfer messages from a specified sou
 
 ---
 
-## Command
+## Move Command
 
 `console queue:messages:move`
 
@@ -31,6 +31,28 @@ You can refine the moving process with the following optional flags:
 | `--filter`           | `-f`     | A string pattern to match against the message body. Only messages containing this string will be moved.     | `null`  |
 | `--limit`            | `-l`     | The maximum total number of messages to move.                                                             | `null`  |
 | `--keep`             | `-k`     | If this flag is present, messages will be copied to the target queue instead of moved (they will not be deleted from the source queue). | `false` |
+
+
+## List Command
+
+`console queue:messages:list`
+
+### Arguments
+
+The command requires two arguments to function:
+
+| Argument         | Description                          |
+| ---------------- | ------------------------------------ |
+| `source-queue`   | **(Required)** The name of the queue you want to move messages *from*. |
+
+### Options
+
+You can refine the moving process with the following optional flags:
+
+| Option               | Shortcut | Description                                                                                               | Default |
+| -------------------- | -------- | --------------------------------------------------------------------------------------------------------- | ------- |
+| `--filter`           | `-f`     | A string pattern to match against the message body. Only messages containing this string will be moved.     | `null`  |
+| `--limit`            | `-l`     | The maximum total number of messages to move.                                                             | `null`  |
 
 ---
 
@@ -94,3 +116,12 @@ Copy a maximum of 200 messages containing "SKU-XYZ-01" from `product_events` to 
 
 ```bash
 console queue:messages:move product_events product_events_reprocess --filter="SKU-XYZ-01" --limit=200 --chunk-size=50 --keep
+```
+
+### 5. List messages from Queue
+
+List 10 messages containing "Foo" from `events`.
+
+```bash
+console queue:messages:list events --filter="foo" --limit=10
+

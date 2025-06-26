@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SprykerCommunity\Zed\QueueCli\Communication\Console;
 
-use Generated\Shared\Transfer\QueueMessageMoveConfigurationTransfer;
+use Generated\Shared\Transfer\QueueMessageCliConfigurationTransfer;
 use SprykerCommunity\Zed\QueueCli\Business\QueueCliFacadeInterface;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -49,7 +49,7 @@ class QueueMessagesListConsole extends Console
         $filter = $input->getOption('filter') ?? '';
         $limit = (int)$input->getOption('limit') ?: null;
 
-        $configuration = (new QueueMessageMoveConfigurationTransfer())
+        $configuration = (new QueueMessageCliConfigurationTransfer())
             ->setSourceQueue($sourceQueueName)
             ->setLimit($limit)
             ->setFilter($filter)

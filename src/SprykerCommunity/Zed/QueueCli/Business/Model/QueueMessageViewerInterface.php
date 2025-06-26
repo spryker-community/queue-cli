@@ -2,9 +2,9 @@
 
 namespace SprykerCommunity\Zed\QueueCli\Business\Model;
 
-use Generated\Shared\Transfer\QueueMessageMoveConfigurationTransfer;
+use Generated\Shared\Transfer\QueueMessageCliConfigurationTransfer;
 
 interface QueueMessageViewerInterface
 {
-    public function listMessages(QueueMessageMoveConfigurationTransfer $configurationTransfer);
+    public function listMessages(QueueMessageCliConfigurationTransfer $configurationTransfer);
 }

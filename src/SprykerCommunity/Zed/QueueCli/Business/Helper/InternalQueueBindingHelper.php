@@ -7,7 +7,7 @@ namespace SprykerCommunity\Zed\QueueCli\Business\Helper;
 use Generated\Shared\Transfer\RabbitMqOptionTransfer;
 use Spryker\Client\RabbitMq\Model\Connection\Connection;
 
-final class InternalQueueBindingHelper
+class InternalQueueBindingHelper
 {
     /**
      * @param \Spryker\Client\RabbitMq\Model\Connection\Connection $connection

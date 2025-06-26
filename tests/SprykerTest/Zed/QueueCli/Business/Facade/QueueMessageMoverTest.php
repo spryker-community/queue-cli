@@ -3,50 +3,32 @@
 namespace SprykerTest\Zed\QueueCli\Business\Model;
 
 use Codeception\Test\Unit;
+use Generated\Shared\Transfer\QueueMessageMoveConfigurationTransfer;
 use Generated\Shared\Transfer\QueueReceiveMessageTransfer;
 use Generated\Shared\Transfer\QueueSendMessageTransfer;
 use PhpAmqpLib\Channel\AMQPChannel;
+use PHPUnit\Framework\MockObject\MockObject;
 use Spryker\Client\Queue\Model\Adapter\AdapterInterface;
 use Spryker\Client\RabbitMq\Model\Connection\Connection;
 use Spryker\Client\RabbitMq\Model\Helper\QueueEstablishmentHelperInterface;
 use Spryker\Client\RabbitMq\RabbitMqClientInterface;
+use SprykerCommunity\Zed\QueueCli\Business\Helper\InternalQueueBindingHelper;
 use SprykerCommunity\Zed\QueueCli\Business\Model\QueueMessageMover;
+use SprykerCommunity\Zed\QueueCli\Business\Model\QueueMessageFilterInterface;
+use SprykerCommunity\Zed\QueueCli\Business\Model\QueueSetupServiceInterface;
 
 class QueueMessageMoverTest extends Unit
 {
-    /**
-     * @var \PHPUnit\Framework\MockObject\MockObject|\Spryker\Client\RabbitMq\RabbitMqClientInterface
-     */
-    protected $rabbitMqClientMock;
+    protected MockObject|RabbitMqClientInterface $rabbitMqClientMock;
+    protected MockObject|QueueEstablishmentHelperInterface $queueEstablishmentHelperMock;
+    protected MockObject|AdapterInterface $queueAdapterMock;
+    protected MockObject|Connection $connectionMock;
+    protected MockObject $internalQueueBindingHelperMock;
+    protected MockObject|QueueSetupServiceInterface $queueSetupServiceMock;
+    protected MockObject|AMQPChannel $channelMock;
+    protected MockObject|QueueMessageFilterInterface $filterMock;
+    protected QueueMessageMover $queueMessageMover;
 
-    /**
-     * @var \PHPUnit\Framework\MockObject\MockObject|\Spryker\Client\RabbitMq\Model\Helper\QueueEstablishmentHelperInterface
-     */
-    protected $queueEstablishmentHelperMock;
-
-    /**
-     * @var \PHPUnit\Framework\MockObject\MockObject|\Spryker\Client\Queue\Model\Adapter\AdapterInterface
-     */
-    protected $queueAdapterMock;
-
-    /**
-     * @var \PHPUnit\Framework\MockObject\MockObject|\Spryker\Client\RabbitMq\Model\Connection\Connection
-     */
-    protected $connectionMock;
-
-    /**
-     * @var \PHPUnit\Framework\MockObject\MockObject|\PhpAmqpLib\Channel\AMQPChannel
-     */
-    protected $channelMock;
-
-    /**
-     * @var \SprykerCommunity\Zed\QueueCli\Business\Model\QueueMessageMover
-     */
-    protected $queueMessageMover;
-
-    /**
-     * @return void
-     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -56,6 +38,9 @@ class QueueMessageMoverTest extends Unit
         $this->queueAdapterMock = $this->getMockBuilder(AdapterInterface::class)->getMock();
         $this->connectionMock = $this->getMockBuilder(Connection::class)->disableOriginalConstructor()->getMock();
         $this->channelMock = $this->getMockBuilder(AMQPChannel::class)->disableOriginalConstructor()->getMock();
+        $this->internalQueueBindingHelperMock = $this->getMockBuilder(InternalQueueBindingHelper::class)->disableOriginalConstructor()->getMock();
+        $this->queueSetupServiceMock = $this->getMockBuilder(QueueSetupServiceInterface::class)->getMock();
+        $this->filterMock = $this->getMockBuilder(QueueMessageFilterInterface::class)->getMock();
 
         $this->rabbitMqClientMock->method('createQueueAdapter')->willReturn($this->queueAdapterMock);
         $this->rabbitMqClientMock->method('getConnection')->willReturn($this->connectionMock);
@@ -63,99 +48,95 @@ class QueueMessageMoverTest extends Unit
 
         $this->queueMessageMover = new QueueMessageMover(
             $this->rabbitMqClientMock,
-            $this->queueEstablishmentHelperMock
+            $this->queueEstablishmentHelperMock,
+            $this->internalQueueBindingHelperMock,
+            $this->queueSetupServiceMock,
+            [$this->filterMock]
         );
     }
 
-    /**
-     * @return void
-     */
-    public function testMoveMessagesMovesSingleMessageSuccessfully(): void
+    public function testMoveMessagesFiltersAndAcknowledgesCorrectly(): void
     {
         // Arrange
-        $sourceQueueName = 'source-queue';
-        $targetQueueName = 'target-queue';
+        $sourceQueue = 'source-queue';
+        $targetQueue = 'target-queue';
         $chunkSize = 10;
 
-        $messageBody = '{"data":"test"}';
-        $queueSendMessageTransfer = (new QueueSendMessageTransfer())->setBody($messageBody);
-        $receivedMessage = (new QueueReceiveMessageTransfer())->setQueueMessage($queueSendMessageTransfer);
-        $receivedMessages = [$receivedMessage];
+        $sendMessageTransfer = (new QueueSendMessageTransfer())->setBody('test-message');
+        $receiveMessageTransfer = (new QueueReceiveMessageTransfer())->setQueueMessage($sendMessageTransfer);
 
-        $this->queueAdapterMock->expects(static::once())->method('createQueue');
-        $this->queueEstablishmentHelperMock->expects(static::once())->method('createExchange');
+        $configurationTransfer = (new QueueMessageMoveConfigurationTransfer())
+            ->setSourceQueue($sourceQueue)
+            ->setTargetQueue($targetQueue)
+            ->setChunkSize($chunkSize)
+            ->setLimit(null)
+            ->setKeep(false)
+            ->setFilter('some-filter');
 
-        $this->queueAdapterMock->expects(static::exactly(2))
+        $this->queueSetupServiceMock->expects(static::once())
+            ->method('setupTargetQueue')
+            ->with($targetQueue);
+
+        $this->filterMock->expects(static::once())
+            ->method('matches')
+            ->with($receiveMessageTransfer, 'some-filter')
+            ->willReturn(true);
+
+        $this->queueAdapterMock->expects(static::exactly(1))
             ->method('receiveMessages')
-            ->with($sourceQueueName, $chunkSize, $this->isType('array'))
-            ->willReturnOnConsecutiveCalls($receivedMessages, []);
+            ->willReturnOnConsecutiveCalls([$receiveMessageTransfer], []);
 
         $this->queueAdapterMock->expects(static::once())
             ->method('sendMessages')
-            ->with($targetQueueName, [$queueSendMessageTransfer]);
+            ->with($targetQueue, [$sendMessageTransfer]);
 
         $this->queueAdapterMock->expects(static::once())
             ->method('acknowledge')
-            ->with($receivedMessage);
+            ->with($receiveMessageTransfer);
 
         // Act
-        $this->queueMessageMover->moveMessages($sourceQueueName, $targetQueueName, $chunkSize);
+        $processedCount = $this->queueMessageMover->moveMessages($configurationTransfer);
+
+        // Assert
+        $this->assertEquals(1, $processedCount);
     }
 
-    /**
-     * @return void
-     */
-    public function testMoveMessagesWithEmptySourceQueue(): void
+    public function testMoveMessagesSkipsWhenFilterFails(): void
     {
         // Arrange
-        $sourceQueueName = 'source-queue';
-        $targetQueueName = 'target-queue';
+        $sourceQueue = 'source-queue';
+        $targetQueue = 'target-queue';
         $chunkSize = 10;
 
-        $this->queueAdapterMock->expects(static::once())->method('createQueue');
-        $this->queueEstablishmentHelperMock->expects(static::once())->method('createExchange');
+        $sendMessageTransfer = (new QueueSendMessageTransfer())->setBody('ignored');
+        $receiveMessageTransfer = (new QueueReceiveMessageTransfer())->setQueueMessage($sendMessageTransfer);
+
+        $configurationTransfer = (new QueueMessageMoveConfigurationTransfer())
+            ->setSourceQueue($sourceQueue)
+            ->setTargetQueue($targetQueue)
+            ->setChunkSize($chunkSize)
+            ->setLimit(null)
+            ->setKeep(false)
+            ->setFilter('some-filter');
+
+        $this->queueSetupServiceMock->method('setupTargetQueue');
+
+        $this->filterMock->expects(static::once())
+            ->method('matches')
+            ->with($receiveMessageTransfer, 'some-filter')
+            ->willReturn(false);
 
         $this->queueAdapterMock->expects(static::once())
             ->method('receiveMessages')
-            ->with($sourceQueueName, $chunkSize, $this->isType('array'))
-            ->willReturn([]);
+            ->willReturn([$receiveMessageTransfer]);
 
         $this->queueAdapterMock->expects(static::never())->method('sendMessages');
         $this->queueAdapterMock->expects(static::never())->method('acknowledge');
 
         // Act
-        $this->queueMessageMover->moveMessages($sourceQueueName, $targetQueueName, $chunkSize);
-    }
+        $processedCount = $this->queueMessageMover->moveMessages($configurationTransfer);
 
-    /**
-     * @return void
-     */
-    public function testMoveMessagesInMultipleChunks(): void
-    {
-        // Arrange
-        $sourceQueueName = 'source-queue';
-        $targetQueueName = 'target-queue';
-        $chunkSize = 1; // Process one message at a time
-
-        $message1 = (new QueueReceiveMessageTransfer())->setQueueMessage((new QueueSendMessageTransfer())->setBody('1'));
-        $message2 = (new QueueReceiveMessageTransfer())->setQueueMessage((new QueueSendMessageTransfer())->setBody('2'));
-
-        $this->queueAdapterMock->expects(static::once())->method('createQueue');
-        $this->queueEstablishmentHelperMock->expects(static::once())->method('createExchange');
-
-        $this->queueAdapterMock->expects(static::exactly(3))
-            ->method('receiveMessages')
-            ->with($sourceQueueName, $chunkSize, $this->isType('array'))
-            ->willReturnOnConsecutiveCalls([$message1], [$message2], []);
-
-        $this->queueAdapterMock->expects(static::exactly(2))
-            ->method('sendMessages');
-
-        $this->queueAdapterMock->expects(static::exactly(2))
-            ->method('acknowledge');
-
-        // Act
-        $this->queueMessageMover->moveMessages($sourceQueueName, $targetQueueName, $chunkSize);
+        // Assert
+        $this->assertEquals(0, $processedCount);
     }
 }
-

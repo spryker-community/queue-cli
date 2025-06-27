@@ -39,7 +39,7 @@ class QueueMessageMover implements QueueMessageMoverInterface
         $queueAdapter = $this->rabbitMqClient->createQueueAdapter();
         $consumerOptions = $this->createConsumerOptions($configurationTransfer->getSourceQueue());
 
-        $limit = $configurationTransfer->getLimit();
+        $limit = (int)$configurationTransfer->getLimit();
         $chunkSize = $configurationTransfer->getChunkSize();
 
         $processedCount = 0;
@@ -68,6 +68,10 @@ class QueueMessageMover implements QueueMessageMoverInterface
                     $messagesToSend[] = $queueSendMessageTransfer;
                     $messagesToAcknowledge[] = $receivedMessage;
                     $processedCount++;
+                }
+
+                if ($processedCount === $limit) {
+                    break;
                 }
             }
 

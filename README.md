@@ -6,6 +6,26 @@ This document provides instructions for using the `queue:messages` console comma
 
 The primary purpose of this command is to transfer messages from a specified source queue to a target queue. This is particularly useful for reprocessing failed messages, testing, or manually managing queue backlogs. You can move all messages or selectively filter them based on content, limit the number of messages moved, and choose whether to keep the original messages in the source queue.
 
+## Install
+
+Install the module with composer.
+
+`composer require spryker-community/queue-cli`
+
+Add new console commands to your `ConsoleDependencyProvider``
+
+```
+protected function getConsoleCommands(Container $container): array // phpcs:ignore SlevomatCodingStandard.Functions.UnusedParameter
+{
+    return [
+        // other console commands
+        new QueueMessagesListConsole(),
+        new QueueMessagesMoveConsole(),
+    ];
+}
+```
+
+
 ---
 
 ## Move Command

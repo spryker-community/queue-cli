@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # === CONFIGURATION ===
-URL="https://rabbitmq.ma.prod.commerce.ci-aldi.com"
+URL="<url>"
 VHOST="de_queue"
 SOURCE_QUEUE="optimize.capacity.error"
 TARGET_QUEUE="event.retry.archive"
